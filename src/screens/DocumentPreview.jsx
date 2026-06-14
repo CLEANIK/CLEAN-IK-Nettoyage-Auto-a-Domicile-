@@ -179,12 +179,23 @@ function DocContent({ doc }) {
               </tr>
             ))}
             {/* Deplacement row */}
-            <tr style={{ background: lines.length % 2 === 1 ? '#fff' : '#F0F7FC', borderBottom: '1px solid #e5e7eb' }}>
-              <td style={{ padding: '11px 14px', fontSize: 12 }}>Déplacement</td>
-              <td style={{ padding: '11px 14px', fontSize: 12, textAlign: 'center' }}>-</td>
-              <td style={{ padding: '11px 14px', fontSize: 12, textAlign: 'center' }}>1</td>
-              <td style={{ padding: '11px 14px', fontSize: 12, textAlign: 'right', fontWeight: 700 }}>OFFERT</td>
-            </tr>
+            {(() => {
+              const dep = doc.deplacement || { offert: true, price: '' }
+              const depOffert = dep.offert !== false
+              const depPrice = parseFloat(dep.price || 0)
+              return (
+                <tr style={{ background: lines.length % 2 === 1 ? '#fff' : '#F0F7FC', borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={{ padding: '11px 14px', fontSize: 12 }}>Déplacement</td>
+                  <td style={{ padding: '11px 14px', fontSize: 12, textAlign: 'center' }}>
+                    {depOffert ? '-' : `${depPrice.toFixed(2)}€`}
+                  </td>
+                  <td style={{ padding: '11px 14px', fontSize: 12, textAlign: 'center' }}>1</td>
+                  <td style={{ padding: '11px 14px', fontSize: 12, textAlign: 'right', fontWeight: 700 }}>
+                    {depOffert ? 'OFFERT' : `${depPrice.toFixed(2)}€`}
+                  </td>
+                </tr>
+              )
+            })()}
             {/* Empty rows for aesthetics */}
             {[...Array(Math.max(0, 4 - lines.length))].map((_, i) => (
               <tr key={`empty-${i}`} style={{ background: (lines.length + 1 + i) % 2 === 1 ? '#fff' : '#F0F7FC', borderBottom: '1px solid #e5e7eb' }}>
