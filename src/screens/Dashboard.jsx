@@ -1,0 +1,197 @@
+import { useState, useEffect } from 'react'
+import { loadDocuments } from '../utils/storage.js'
+import { FileText, FilePlus, Users, ChevronRight, Trash2 } from 'lucide-react'
+import { saveDocuments } from '../utils/storage.js'
+
+export default function Dashboard({ onNew, onEdit, onPreview, onClients }) {
+  const [docs, setDocs] = useState([])
+  const [tab, setTab] = useState('all')
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  useEffect(() => {
+    setDocs(loadDocuments())
+  }, [])
+
+  function handleDelete(id) {
+    const updated = docs.filter(d => d.id !== id)
+    saveDocuments(updated)
+    setDocs(updated)
+    setConfirmDelete(null)
+  }
+
+  const filtered = tab === 'all' ? docs : docs.filter(d => d.type === tab)
+  const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date))
+
+  const totalDevis = docs.filter(d => d.type === 'devis').length
+  const totalFactures = docs.filter(d => d.type === 'facture').length
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-[#1E3A5F] to-[#3B9FD1] text-white pt-12 pb-6 px-4">
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <h1 className="text-2xl font-bold tracking-wide">CLEAN'IK</h1>
+            <p className="text-blue-100 text-sm">Devis & Factures</p>
+          </div>
+          <button
+            onClick={onClients}
+            className="flex items-center gap-1 bg-white/20 rounded-xl px-3 py-2 text-sm"
+          >
+            <Users size={16} />
+            <span>Clients</span>
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div className="flex gap-3 mt-5">
+          <div className="flex-1 bg-white/15 rounded-2xl p-3 text-center">
+            <div className="text-2xl font-bold">{totalDevis}</div>
+            <div className="text-xs text-blue-100">Devis</div>
+          </div>
+          <div className="flex-1 bg-white/15 rounded-2xl p-3 text-center">
+            <div className="text-2xl font-bold">{totalFactures}</div>
+            <div className="text-xs text-blue-100">Factures</div>
+          </div>
+          <div className="flex-1 bg-white/15 rounded-2xl p-3 text-center">
+            <div className="text-2xl font-bold">{docs.length}</div>
+            <div className="text-xs text-blue-100">Total</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="px-4 -mt-4 flex gap-3">
+        <button
+          onClick={() => onNew('devis')}
+          className="flex-1 bg-white rounded-2xl shadow-md p-4 flex items-center gap-3 active:scale-95 transition-transform"
+        >
+          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+            <FilePlus size={20} className="text-[#3B9FD1]" />
+          </div>
+          <div className="text-left">
+            <div className="font-semibold text-gray-800 text-sm">Nouveau Devis</div>
+            <div className="text-xs text-gray-400">Créer un devis</div>
+          </div>
+        </button>
+        <button
+          onClick={() => onNew('facture')}
+          className="flex-1 bg-white rounded-2xl shadow-md p-4 flex items-center gap-3 active:scale-95 transition-transform"
+        >
+          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+            <FileText size={20} className="text-green-600" />
+          </div>
+          <div className="text-left">
+            <div className="font-semibold text-gray-800 text-sm">Nouvelle Facture</div>
+            <div className="text-xs text-gray-400">Créer une facture</div>
+          </div>
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="px-4 mt-5 flex gap-2">
+        {['all', 'devis', 'facture'].map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              tab === t
+                ? 'bg-[#3B9FD1] text-white'
+                : 'bg-white text-gray-500 border border-gray-200'
+            }`}
+          >
+            {t === 'all' ? 'Tous' : t === 'devis' ? 'Devis' : 'Factures'}
+          </button>
+        ))}
+      </div>
+
+      {/* Document list */}
+      <div className="flex-1 px-4 mt-4 pb-8 space-y-3">
+        {sorted.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <FileText size={48} className="mx-auto mb-3 opacity-30" />
+            <p className="text-sm">Aucun document</p>
+            <p className="text-xs mt-1">Créez votre premier devis ou facture</p>
+          </div>
+        ) : (
+          sorted.map(doc => (
+            <div
+              key={doc.id}
+              className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+            >
+              <div
+                className="p-4 flex items-center gap-3 active:bg-gray-50 cursor-pointer"
+                onClick={() => onPreview(doc)}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  doc.type === 'devis' ? 'bg-blue-100' : 'bg-green-100'
+                }`}>
+                  <FileText size={18} className={doc.type === 'devis' ? 'text-[#3B9FD1]' : 'text-green-600'} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      doc.type === 'devis'
+                        ? 'bg-blue-100 text-[#3B9FD1]'
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      {doc.type === 'devis' ? 'DEVIS' : 'FACTURE'}
+                    </span>
+                    <span className="text-xs text-gray-400 font-mono">{doc.number}</span>
+                  </div>
+                  <div className="font-semibold text-gray-800 text-sm mt-0.5 truncate">
+                    {doc.client?.name || 'Client non défini'}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {doc.date ? doc.date.split('-').reverse().join('/') : ''} · {doc.total?.toFixed(2)}€
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-gray-300 flex-shrink-0" />
+              </div>
+
+              <div className="border-t border-gray-50 flex">
+                <button
+                  onClick={() => onEdit(doc)}
+                  className="flex-1 py-2.5 text-xs text-[#3B9FD1] font-medium text-center active:bg-blue-50"
+                >
+                  Modifier
+                </button>
+                <div className="w-px bg-gray-100" />
+                <button
+                  onClick={() => setConfirmDelete(doc.id)}
+                  className="px-5 py-2.5 text-xs text-red-400 font-medium active:bg-red-50"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Delete confirm modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
+          <div className="bg-white w-full rounded-t-3xl p-6 slide-up">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Supprimer ?</h3>
+            <p className="text-sm text-gray-500 mb-6">Cette action est irréversible.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-3 rounded-2xl border border-gray-200 text-gray-600 font-medium"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => handleDelete(confirmDelete)}
+                className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-medium"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
