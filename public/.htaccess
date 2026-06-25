@@ -1,26 +1,34 @@
 Options -Indexes -MultiViews
 
+# ── SPA routing (React) ────────────────────────────────
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Ne pas réécrire les fichiers et dossiers existants
+  # Pass through existing files and directories
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Tout rediriger vers index.html (SPA React)
+  # Everything else → index.html
   RewriteRule ^ index.html [QSA,L]
 </IfModule>
 
-# CORS — nécessaire pour PWA et service worker
+# ── Security headers ───────────────────────────────────
 <IfModule mod_headers.c>
+  # Allow embedding in iframes from any domain (needed for WordPress embed)
+  # X-Frame-Options is intentionally NOT set to allow cross-origin iframes
+  Header always unset X-Frame-Options
+  Header always set Content-Security-Policy "frame-ancestors *"
+
+  # CORS: needed for PWA service worker and fonts
   Header always set Access-Control-Allow-Origin "*"
-  Header always set X-Frame-Options "SAMEORIGIN"
+
+  # Prevent MIME sniffing
   Header always set X-Content-Type-Options "nosniff"
 </IfModule>
 
-# Cache long pour les assets (hash dans le nom de fichier)
+# ── Cache: long TTL for hashed assets ─────────────────
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresByType text/html                 "access plus 0 seconds"
@@ -31,13 +39,14 @@ Options -Indexes -MultiViews
   ExpiresByType application/manifest+json "access plus 0 seconds"
 </IfModule>
 
-# Compression gzip
+# ── Gzip compression ───────────────────────────────────
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
 </IfModule>
 
-# Types MIME pour PWA
+# ── MIME types ─────────────────────────────────────────
 <IfModule mod_mime.c>
   AddType application/manifest+json .webmanifest
-  AddType application/javascript .js
+  AddType application/javascript    .js
+  AddType text/css                  .css
 </IfModule>

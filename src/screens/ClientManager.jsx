@@ -43,9 +43,9 @@ export default function ClientManager({ onBack }) {
 
   if (editing !== null) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="bg-gradient-to-r from-[#1E3A5F] to-[#3B9FD1] text-white pt-12 pb-4 px-4">
-          <div className="flex items-center justify-between">
+      <div className="app-screen flex flex-col bg-gray-50">
+        <div className="flex-shrink-0 bg-gradient-to-r from-[#1E3A5F] to-[#3B9FD1] text-white pt-safe px-4 pb-4">
+          <div className="flex items-center justify-between pt-3">
             <button onClick={() => setEditing(null)} className="p-2 -ml-2">
               <ArrowLeft size={22} />
             </button>
@@ -58,7 +58,7 @@ export default function ClientManager({ onBack }) {
           </div>
         </div>
 
-        <div className="flex-1 p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-6">
           {[
             { key: 'name', label: 'Nom / Société', type: 'text', placeholder: 'APAVE EXPLOITATION...' },
             { key: 'address', label: 'Adresse', type: 'text', placeholder: '6 Rue du Général...' },
@@ -83,9 +83,9 @@ export default function ClientManager({ onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-gradient-to-r from-[#1E3A5F] to-[#3B9FD1] text-white pt-12 pb-4 px-4">
-        <div className="flex items-center justify-between">
+    <div className="app-screen flex flex-col bg-gray-50">
+      <div className="flex-shrink-0 bg-gradient-to-r from-[#1E3A5F] to-[#3B9FD1] text-white pt-safe px-4 pb-4">
+        <div className="flex items-center justify-between pt-3">
           <button onClick={onBack} className="p-2 -ml-2">
             <ArrowLeft size={22} />
           </button>
@@ -97,7 +97,7 @@ export default function ClientManager({ onBack }) {
         </div>
       </div>
 
-      <div className="flex-1 p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-6">
         {clients.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <User size={48} className="mx-auto mb-3 opacity-30" />

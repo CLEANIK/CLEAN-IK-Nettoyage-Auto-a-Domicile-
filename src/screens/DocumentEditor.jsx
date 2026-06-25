@@ -7,27 +7,28 @@ const emptyClient  = { name: '', address: '', city: '', phone: '', email: '' }
 const emptyVehicle = { plate: '', model: '' }
 
 export default function DocumentEditor({ doc, onBack, onPreview }) {
+  if (!doc) return null
+
   const isNew = doc.isNew
   const type  = doc.type
 
-  const [number, setNumber]     = useState('')
-  const [date, setDate]         = useState(todayISO())
-  const [affaire, setAffaire]   = useState('')
-  const [bon, setBon]           = useState('')
-  const [client, setClient]     = useState(emptyClient)
-  const [vehicle, setVehicle]   = useState(emptyVehicle)
-  const [lines, setLines]       = useState([])
+  const [number,      setNumber]      = useState('')
+  const [date,        setDate]        = useState(todayISO())
+  const [affaire,     setAffaire]     = useState('')
+  const [bon,         setBon]         = useState('')
+  const [client,      setClient]      = useState(emptyClient)
+  const [vehicle,     setVehicle]     = useState(emptyVehicle)
+  const [lines,       setLines]       = useState([])
   const [deplacement, setDeplacement] = useState({ offert: true, price: '' })
-  const [status, setStatus]     = useState('pending')
 
-  const [showCatalog, setShowCatalog]     = useState(false)
-  const [openCategory, setOpenCategory]   = useState(null)
-  const [showClientSheet, setShowClientSheet] = useState(false)
-  const [clientSearch, setClientSearch]   = useState('')
-  const [savedClients, setSavedClients]   = useState([])
-  const [addingClient, setAddingClient]   = useState(false)
-  const [newClientForm, setNewClientForm] = useState(emptyClient)
-  const [clientSaved, setClientSaved]     = useState(false)
+  const [showCatalog,      setShowCatalog]      = useState(false)
+  const [openCategory,     setOpenCategory]     = useState(null)
+  const [showClientSheet,  setShowClientSheet]  = useState(false)
+  const [clientSearch,     setClientSearch]     = useState('')
+  const [savedClients,     setSavedClients]     = useState([])
+  const [addingClient,     setAddingClient]     = useState(false)
+  const [newClientForm,    setNewClientForm]    = useState(emptyClient)
+  const [clientSaved,      setClientSaved]      = useState(false)
 
   useEffect(() => {
     const docs = loadDocuments()
@@ -35,17 +36,16 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
     if (isNew) {
       setNumber(generateDocNumber(type, docs))
     } else {
-      setNumber(doc.number || '')
-      setDate(doc.date || todayISO())
+      setNumber(doc.number  || '')
+      setDate(doc.date      || todayISO())
       setAffaire(doc.affaire || '')
-      setBon(doc.bon || '')
-      setClient(doc.client || emptyClient)
+      setBon(doc.bon         || '')
+      setClient(doc.client   || emptyClient)
       setVehicle(doc.vehicle || emptyVehicle)
-      setLines(doc.lines || [])
+      setLines(doc.lines     || [])
       setDeplacement(doc.deplacement || { offert: true, price: '' })
-      setStatus(doc.status || 'pending')
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Lines ──────────────────────────────────────────────
   function addLine(service) {
@@ -71,6 +71,10 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
     }))
   }
 
+  function removeLine(id) {
+    setLines(prev => prev.filter(l => l.id !== id))
+  }
+
   const deplacementAmount = deplacement.offert ? 0 : parseFloat(deplacement.price || 0)
   const total = lines.reduce((s, l) => s + (parseFloat(l.total) || 0), 0) + deplacementAmount
 
@@ -82,7 +86,7 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
 
   function saveNewClientAndPick() {
     if (!newClientForm.name.trim()) return
-    const entry = { ...newClientForm, id: String(Date.now()) }
+    const entry   = { ...newClientForm, id: String(Date.now()) }
     const updated = [...savedClients, entry]
     saveClients(updated); setSavedClients(updated)
     pickClient(entry); setNewClientForm(emptyClient); setAddingClient(false)
@@ -90,7 +94,7 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
 
   function saveCurrentClientToBook() {
     if (!client.name.trim()) return
-    const entry = { ...client, id: String(Date.now()) }
+    const entry   = { ...client, id: String(Date.now()) }
     const updated = [...savedClients, entry]
     saveClients(updated); setSavedClients(updated)
     setClientSaved(true); setTimeout(() => setClientSaved(false), 2000)
@@ -101,44 +105,51 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
     (c.city || '').toLowerCase().includes(clientSearch.toLowerCase())
   )
 
-  // ── Save ───────────────────────────────────────────────
+  // ── Build & save ───────────────────────────────────────
   function buildDoc() {
     return {
       id: doc.id || String(Date.now()),
       type, number, date, affaire, bon,
-      status: type === 'devis' ? status : undefined,
       client, vehicle, lines, deplacement, total,
     }
   }
 
   function handleSaveAndPreview() {
     const built = buildDoc()
-    const docs = loadDocuments()
-    const idx = docs.findIndex(d => d.id === built.id)
+    const docs  = loadDocuments()
+    const idx   = docs.findIndex(d => d.id === built.id)
     if (idx >= 0) docs[idx] = built; else docs.push(built)
     saveDocuments(docs)
     onPreview(built)
   }
 
+  // ─────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-[#1E3A5F] to-[#3B9FD1] text-white pt-12 pb-4 px-4">
-        <div className="flex items-center justify-between">
+    /*
+     * KEY CHANGE: h-screen + flex flex-col
+     * The bottom CTA is a flex-shrink-0 footer, NOT fixed.
+     * This works on both mobile AND in a desktop centered container.
+     */
+    <div className="app-screen flex flex-col bg-gray-50">
+
+      {/* ── Header ── */}
+      <div className="flex-shrink-0 bg-gradient-to-r from-[#1E3A5F] to-[#3B9FD1] text-white pt-safe px-4 pb-4">
+        <div className="flex items-center justify-between pt-3">
           <button onClick={onBack} className="p-2 -ml-2"><ArrowLeft size={22} /></button>
           <h2 className="font-bold text-lg">
             {isNew ? (type === 'devis' ? 'Nouveau Devis' : 'Nouvelle Facture')
                    : (type === 'devis' ? 'Modifier Devis' : 'Modifier Facture')}
           </h2>
-          <button onClick={handleSaveAndPreview} className="flex items-center gap-1 bg-white/20 rounded-xl px-3 py-2 text-sm font-medium">
+          <button onClick={handleSaveAndPreview}
+            className="flex items-center gap-1 bg-white/20 rounded-xl px-3 py-2 text-sm font-medium active:bg-white/30">
             <Eye size={16} /><span>Aperçu</span>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-32">
+      {/* ── Scrollable content ── */}
+      <div className="flex-1 overflow-y-auto">
 
-        {/* ── Informations ── */}
         <Section title="Informations">
           <Row label="N°">
             <input className="input-field" value={number} onChange={e => setNumber(e.target.value)} placeholder="RK260101" />
@@ -158,38 +169,29 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
           )}
         </Section>
 
-        {/* ── Véhicule ── */}
         <Section title="Véhicule">
           <Row label="Immatriculation">
-            <input
-              className="input-field uppercase"
-              value={vehicle.plate}
+            <input className="input-field uppercase" value={vehicle.plate}
               onChange={e => setVehicle(v => ({ ...v, plate: e.target.value.toUpperCase() }))}
-              placeholder="AB-123-CD"
-              maxLength={9}
-            />
+              placeholder="AB-123-CD" maxLength={9} />
           </Row>
           <Row label="Marque / Modèle">
-            <input
-              className="input-field"
-              value={vehicle.model}
+            <input className="input-field" value={vehicle.model}
               onChange={e => setVehicle(v => ({ ...v, model: e.target.value }))}
-              placeholder="Renault Clio, BMW X5..."
-            />
+              placeholder="Renault Clio, BMW X5..." />
           </Row>
         </Section>
 
-        {/* ── Destinataire ── */}
         <Section title="Destinataire">
           <button
             onClick={() => { setShowClientSheet(true); setAddingClient(false); setClientSearch('') }}
-            className="w-full flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 mb-4 active:bg-blue-100"
-          >
+            className="w-full flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 mb-4 active:bg-blue-100">
             <Search size={16} className="text-[#3B9FD1]" />
             <span className="text-[#3B9FD1] text-sm font-medium">
-              {savedClients.length > 0 ? 'Rechercher un contact...' : 'Ajouter un contact sauvegardé'}
+              {savedClients.length > 0 ? 'Rechercher un contact...' : 'Créer un contact sauvegardé'}
             </span>
           </button>
+
           <Row label="Nom / Société">
             <input className="input-field" value={client.name}
               onChange={e => { setClient(c => ({ ...c, name: e.target.value })); setClientSaved(false) }}
@@ -222,7 +224,6 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
           )}
         </Section>
 
-        {/* ── Prestations ── */}
         <Section title="Prestations">
           {lines.map(line => (
             <div key={line.id} className="mb-4 bg-gray-50 rounded-2xl p-3">
@@ -231,9 +232,8 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
                   className="flex-1 input-field resize-none text-sm" rows={2}
                   value={line.description}
                   onChange={e => updateLine(line.id, 'description', e.target.value)}
-                  placeholder="Description..."
-                />
-                <button onClick={() => setLines(p => p.filter(l => l.id !== line.id))} className="p-2 text-red-400 mt-1">
+                  placeholder="Description de la prestation..." />
+                <button onClick={() => removeLine(line.id)} className="p-2 text-red-400 mt-1">
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -265,23 +265,19 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
                 <Car size={15} className="text-[#3B9FD1]" /> Déplacement
               </span>
               <div className="flex items-center gap-1 bg-white rounded-xl p-1 shadow-sm">
-                <button
-                  onClick={() => setDeplacement(d => ({ ...d, offert: true }))}
+                <button onClick={() => setDeplacement(d => ({ ...d, offert: true }))}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
                     deplacement.offert ? 'bg-[#3B9FD1] text-white' : 'text-gray-400'
-                  }`}
-                >OFFERT</button>
-                <button
-                  onClick={() => setDeplacement(d => ({ ...d, offert: false }))}
+                  }`}>OFFERT</button>
+                <button onClick={() => setDeplacement(d => ({ ...d, offert: false }))}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
                     !deplacement.offert ? 'bg-[#3B9FD1] text-white' : 'text-gray-400'
-                  }`}
-                >Payant</button>
+                  }`}>Payant</button>
               </div>
             </div>
             {!deplacement.offert && (
               <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-400">Prix (€)</label>
+                <label className="text-xs text-gray-400 flex-shrink-0">Prix (€)</label>
                 <input className="input-field text-right flex-1" type="number" inputMode="decimal"
                   value={deplacement.price}
                   onChange={e => setDeplacement(d => ({ ...d, price: e.target.value }))}
@@ -301,26 +297,24 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
           <span className="font-bold text-gray-700 text-lg">TOTAL</span>
           <span className="font-bold text-2xl text-[#3B9FD1]">{total.toFixed(2)} €</span>
         </div>
-
-        {/* TVA notice */}
         <p className="text-center text-xs text-gray-400 mb-4">TVA non applicable, art. 293 B du CGI</p>
       </div>
 
-      {/* Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-safe">
+      {/* ── Bottom CTA — flex-shrink-0, NOT fixed ── */}
+      <div className="flex-shrink-0 bg-white border-t border-gray-100 p-4 pb-safe">
         <button onClick={handleSaveAndPreview}
           className="w-full bg-[#3B9FD1] text-white font-bold py-4 rounded-2xl text-base active:opacity-90 flex items-center justify-center gap-2">
           <Eye size={20} />Enregistrer & Aperçu
         </button>
       </div>
 
-      {/* ── Catalog sheet ── */}
+      {/* ── Catalog bottom sheet ── */}
       {showCatalog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end">
-          <div className="bg-white rounded-t-3xl max-h-[85vh] flex flex-col slide-up">
+        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end sm:items-center sm:justify-center">
+          <div className="sheet-card bg-white rounded-t-3xl max-h-[85vh] flex flex-col slide-up">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-800 text-lg">Catalogue</h3>
-              <button onClick={() => setShowCatalog(false)} className="text-gray-400 text-3xl leading-none pb-1">×</button>
+              <button onClick={() => setShowCatalog(false)} className="text-gray-400 text-3xl leading-none pb-1 w-8 text-center">×</button>
             </div>
             <div className="overflow-y-auto flex-1 p-4 space-y-3">
               <button onClick={addCustomLine}
@@ -331,8 +325,7 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
                 <div key={cat.category}>
                   <button
                     onClick={() => setOpenCategory(openCategory === cat.category ? null : cat.category)}
-                    className="w-full flex items-center justify-between px-2 py-2"
-                  >
+                    className="w-full flex items-center justify-between px-2 py-2">
                     <span className="font-semibold text-[#1E3A5F] text-sm uppercase tracking-wide">{cat.category}</span>
                     {openCategory === cat.category ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </button>
@@ -347,7 +340,7 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
                               {svc.price > 0 ? `${svc.price}€` : 'Sur mesure'}
                             </span>
                           </div>
-                          {svc.details && <p className="text-xs text-gray-400 mt-1">{svc.details}</p>}
+                          {svc.details  && <p className="text-xs text-gray-400 mt-1">{svc.details}</p>}
                           {svc.duration && <p className="text-xs text-blue-400 mt-0.5">⏱ {svc.duration}</p>}
                         </button>
                       ))}
@@ -360,23 +353,24 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
         </div>
       )}
 
-      {/* ── Contact sheet ── */}
+      {/* ── Contact bottom sheet ── */}
       {showClientSheet && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end">
-          <div className="bg-white rounded-t-3xl max-h-[85vh] flex flex-col slide-up">
+        <div className="fixed inset-0 bg-black/50 z-50 flex flex-col justify-end sm:items-center sm:justify-center">
+          <div className="sheet-card bg-white rounded-t-3xl max-h-[85vh] flex flex-col slide-up">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h3 className="font-bold text-gray-800 text-lg">Contacts</h3>
               <button onClick={() => { setShowClientSheet(false); setAddingClient(false); setClientSearch('') }}
-                className="text-gray-400 text-3xl leading-none pb-1">×</button>
+                className="text-gray-400 text-3xl leading-none pb-1 w-8 text-center">×</button>
             </div>
-
             {!addingClient ? (
               <>
                 <div className="px-4 pt-3 pb-2">
                   <div className="flex items-center gap-2 bg-gray-100 rounded-2xl px-3 py-2.5">
                     <Search size={16} className="text-gray-400 flex-shrink-0" />
-                    <input autoFocus className="flex-1 bg-transparent text-sm outline-none text-gray-800 placeholder-gray-400"
-                      placeholder="Rechercher..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} />
+                    <input autoFocus
+                      className="flex-1 bg-transparent text-sm outline-none text-gray-800 placeholder-gray-400"
+                      placeholder="Rechercher..." value={clientSearch}
+                      onChange={e => setClientSearch(e.target.value)} />
                   </div>
                 </div>
                 <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-2">
@@ -385,15 +379,15 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
                     <UserPlus size={18} /><span className="text-sm font-semibold">Nouveau contact</span>
                   </button>
                   {filteredClients.length === 0 && clientSearch ? (
-                    <div className="text-center py-8 text-gray-400 text-sm">Aucun résultat pour "{clientSearch}"</div>
+                    <p className="text-center py-8 text-gray-400 text-sm">Aucun résultat pour "{clientSearch}"</p>
                   ) : (
                     filteredClients.map(c => (
                       <button key={c.id} onClick={() => pickClient(c)}
                         className="w-full text-left bg-gray-50 rounded-2xl p-4 active:bg-blue-50">
                         <div className="font-semibold text-gray-800">{c.name}</div>
                         {c.address && <div className="text-xs text-gray-400 mt-0.5">{c.address}</div>}
-                        {c.city && <div className="text-xs text-gray-400">{c.city}</div>}
-                        {c.phone && <div className="text-xs text-gray-400">{c.phone}</div>}
+                        {c.city    && <div className="text-xs text-gray-400">{c.city}</div>}
+                        {c.phone   && <div className="text-xs text-gray-400">{c.phone}</div>}
                       </button>
                     ))
                   )}
@@ -407,11 +401,11 @@ export default function DocumentEditor({ doc, onBack, onPreview }) {
                 </div>
                 <div className="overflow-y-auto flex-1 px-4 pb-4 space-y-3">
                   {[
-                    { key: 'name', label: 'Nom / Société *', type: 'text', placeholder: 'APAVE EXPLOITATION...' },
-                    { key: 'address', label: 'Adresse', type: 'text', placeholder: '6 Rue du Général...' },
-                    { key: 'city', label: 'Ville / CP', type: 'text', placeholder: '92400 Courbevoie' },
-                    { key: 'phone', label: 'Téléphone', type: 'tel', placeholder: '06 00 00 00 00' },
-                    { key: 'email', label: 'Email', type: 'email', placeholder: 'contact@exemple.fr' },
+                    { key: 'name',    label: 'Nom / Société *', type: 'text',  placeholder: 'APAVE EXPLOITATION...' },
+                    { key: 'address', label: 'Adresse',         type: 'text',  placeholder: '6 Rue du Général...'   },
+                    { key: 'city',    label: 'Ville / CP',      type: 'text',  placeholder: '92400 Courbevoie'      },
+                    { key: 'phone',   label: 'Téléphone',       type: 'tel',   placeholder: '06 00 00 00 00'        },
+                    { key: 'email',   label: 'Email',           type: 'email', placeholder: 'contact@exemple.fr'   },
                   ].map(({ key, label, type: t, placeholder }) => (
                     <div key={key}>
                       <label className="text-xs text-gray-400 mb-1 block">{label}</label>
